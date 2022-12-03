@@ -1,0 +1,23 @@
+PSQL=/usr/bin/psql
+q3
+label=base_backup_${today}
+PGBACKUP=/var/lib/pgsql93/pgsqlbackup
+today=`date +%H:%M%p -d 04:00`
+CP=`$PSQL -q -Upostgres -w -d template1 -c "SELECT pg_start_backup('$label');" -P tuples_only -P format=unaligned` RVAL=$?
+if [ ${RVAL} -ne 0 ]
+then
+echo "Backup Failed!"
+exit 1;
+fi
+echo "Backup Complete"
+
+tar -cvf pgdata-$today.tar.bz2 --exclude='pg_xlog' $PGBACKUP/
+echo "Compression with Tar completed..."
+echo "PG_STOP_BACKUP script will start now..."
+$PSQL -Upostgres template1 -c "SELECT pg_stop_backup();"
+if [ $? -ne 0 ]
+then
+echo "Backup Failed"
+exit 1;
+fi
+echo "Backup Complete"
